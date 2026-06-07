@@ -61,6 +61,15 @@ else
 fi
 echo "max_connections 参数已修改为 500。"
 
+# 关闭同步提交：发送写事务(会话棘轮)不再每次等 WAL fsync，写吞吐大幅提升
+# 代价：崩溃最多丢最近数百ms已提交事务(会话自动重建)，不会损坏数据库
+if grep -q "^[#]*\s*synchronous_commit\s*=" "$POSTGRESQL_CONF"; then
+  sed -i "s/^[#]*\s*synchronous_commit\s*=.*/synchronous_commit = off/" "$POSTGRESQL_CONF"
+else
+  echo "synchronous_commit = off" >> "$POSTGRESQL_CONF"
+fi
+echo "synchronous_commit 参数已设置为 off。"
+
 # 重启服务使配置生效
 echo "正在重启 PostgreSQL 服务以应用新的配置..."
 systemctl restart postgresql
